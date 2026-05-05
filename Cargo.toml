@@ -1,0 +1,16 @@
+[package]
+name = "kirtonos_v2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+chrono = "0.4.44"
+clap = "4.6.1"
+colored = "3.1.1"
+dotenv = "0.15.0"
+duckdb = { version = "1.10502.0", features = ["bundled"] }
+reqwest = { version = "0.13.3", features = ["json"] }
+serde = { version  = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.52.1", features = ["full"] }
