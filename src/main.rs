@@ -19,6 +19,7 @@ async fn main () {
 
 
     // let spy_data = api::stocks::fetch_daily_ohlcv("SPY").await.unwrap();
+    let fred_data = api::economic::fetch_fred_data("DGS10").await.unwrap();
     // let qqq_data = api::stocks::fetch_daily_ohlcv("QQQ").await.unwrap();
     // let iwm_data = api::stocks::fetch_daily_ohlcv("IWM").await.unwrap();
 }

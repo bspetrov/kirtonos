@@ -3,9 +3,10 @@ use chrono::NaiveDate;
 pub enum Models {
       Pricing(Vec<Pricing>),
       Assets(Vec<Assets>),
-      RiskFreeRates(Vec<RiskFreeRates>)
+      MacroData(Vec<MacroData>),
 }
 
+#[derive(Debug)]
 pub struct Pricing {
     pub datetime: NaiveDate,
     pub symbol: String,
@@ -24,8 +25,9 @@ pub struct Assets {
     pub currency: String
 }
 
-pub struct RiskFreeRates {
+pub struct MacroData {
     pub date: NaiveDate,
-    pub rate_3m: f64,
-    pub rate_10y: f64
+    pub series_id: String,
+    pub value: f64,
+    pub frequency: String,
 }

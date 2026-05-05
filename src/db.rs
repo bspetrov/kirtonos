@@ -1,5 +1,5 @@
 use duckdb::{params, Connection, Result};
-use crate::models::{Models, Pricing, Assets};
+use crate::models::{Models, Pricing, Assets, MacroData};
 use chrono::NaiveDate;
 use std::env;
 
@@ -46,10 +46,12 @@ pub fn initialize_db() -> Result<()> {
                      currency TEXT NOT NULL,
                      PRIMARY KEY (symbol)
                      );
-             CREATE TABLE IF NOT EXISTS risk_free_rates (
-                     date DATE PRIMARY KEY,
-                     rate_3m DOUBLE NOT NULL,
-                     rate_10y DOUBLE NOT NULL
+             CREATE TABLE IF NOT EXISTS macro_data (
+                     date DATE NOT NULL,
+                     series_id TEXT NOT NULL,
+                     value DOUBLE NOT NULL,
+                     frequency TEXT NOT NULL,
+                     PRIMARY KEY (date, series_id)
                      );
              COMMIT;
         "
@@ -84,12 +86,12 @@ pub fn insert_data(data_model: Models, conn: &Connection) -> Result<()> {
                         conn.execute_batch("COMMIT")?;
                 }
 
-                Models::RiskFreeRates(risk_free_rates) => {
+                Models::MacroData(macro_data) => {
                         conn.execute_batch("BEGIN")?;
-                        for r in risk_free_rates {
+                        for m in macro_data {
                                 conn.execute(
-                                        "INSERT INTO risk_free_rates (date, rate_3m, rate_10y) VALUES (?, ?, ?)",
-                                        params![r.date.to_string(), r.rate_3m, r.rate_10y]
+                                        "INSERT OR IGNORE INTO macro_data (date, series_id, value, frequency) VALUES (?, ?, ?, ?)",
+                                        params![m.date.to_string(), m.series_id, m.value, m.frequency]
                                 )?;
                         }
                         conn.execute_batch("COMMIT")?;
@@ -177,10 +179,12 @@ mod tests {
                         currency TEXT NOT NULL,
                         PRIMARY KEY (symbol)
                         );
-                CREATE TABLE risk_free_rates (
-                        date DATE PRIMARY KEY,
-                        rate_3m DOUBLE NOT NULL,
-                        rate_10y DOUBLE NOT NULL
+                CREATE TABLE macro_data (
+                        date DATE NOT NULL,
+                        series_id TEXT NOT NULL,
+                        value DOUBLE NOT NULL,
+                        frequency TEXT NOT NULL,
+                        PRIMARY KEY (date, series_id)
                         );
                 COMMIT;
             "
@@ -293,46 +297,57 @@ mod tests {
     }
 
     #[test]
-    fn test_risk_free_rates_insert_roundtrip() {
-        use crate::models::RiskFreeRates;
+    fn test_macro_data_insert_roundtrip() {
+        use crate::models::MacroData;
         let conn = setup_conn();
-        let row = RiskFreeRates {
+        let row = MacroData {
             date: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
-            rate_3m: 5.25,
-            rate_10y: 4.10,
+            series_id: "DGS10".to_string(),
+            value: 4.15,
+            frequency: "daily".to_string(),
         };
 
-        insert_data(Models::RiskFreeRates(vec![row]), &conn).unwrap();
+        insert_data(Models::MacroData(vec![row]), &conn).unwrap();
 
         let mut stmt = conn.prepare(
-            "SELECT CAST(date AS VARCHAR), rate_3m, rate_10y FROM risk_free_rates"
+            "SELECT CAST(date AS VARCHAR), series_id, value, frequency FROM macro_data"
         ).unwrap();
         let mut rows = stmt.query([]).unwrap();
         let r = rows.next().unwrap().unwrap();
 
         assert_eq!(r.get::<_, String>(0).unwrap(), "2024-01-15");
-        assert_eq!(r.get::<_, f64>(1).unwrap(), 5.25);
-        assert_eq!(r.get::<_, f64>(2).unwrap(), 4.10);
+        assert_eq!(r.get::<_, String>(1).unwrap(), "DGS10");
+        assert_eq!(r.get::<_, f64>(2).unwrap(), 4.15);
+        assert_eq!(r.get::<_, String>(3).unwrap(), "daily");
     }
 
     #[test]
-    fn test_risk_free_rates_duplicate_pk_fails() {
-        use crate::models::RiskFreeRates;
+    fn test_macro_data_duplicate_pk_ignored() {
+        use crate::models::MacroData;
         let conn = setup_conn();
-        let row = RiskFreeRates {
+        let row = MacroData {
             date: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
-            rate_3m: 5.25,
-            rate_10y: 4.10,
+            series_id: "DGS10".to_string(),
+            value: 4.15,
+            frequency: "daily".to_string(),
         };
 
-        insert_data(Models::RiskFreeRates(vec![row]), &conn).unwrap();
+        insert_data(Models::MacroData(vec![row]), &conn).unwrap();
 
-        let duplicate = RiskFreeRates {
+        let duplicate = MacroData {
             date: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
-            rate_3m: 5.50,
-            rate_10y: 4.20,
+            series_id: "DGS10".to_string(),
+            value: 9.99,
+            frequency: "daily".to_string(),
         };
 
-        assert!(insert_data(Models::RiskFreeRates(vec![duplicate]), &conn).is_err());
+        insert_data(Models::MacroData(vec![duplicate]), &conn).unwrap();
+
+        let mut stmt = conn.prepare(
+            "SELECT COUNT(*) FROM macro_data WHERE series_id = 'DGS10'"
+        ).unwrap();
+        let mut rows = stmt.query([]).unwrap();
+        let count: i64 = rows.next().unwrap().unwrap().get(0).unwrap();
+        assert_eq!(count, 1);
     }
 }
