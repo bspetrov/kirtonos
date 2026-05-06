@@ -1,6 +1,6 @@
-use duckdb::{params, Connection, Result};
-use crate::models::{Models, Pricing, Assets, MacroData};
+use crate::models::{Assets, MacroData, Models, Pricing};
 use chrono::NaiveDate;
+use duckdb::{Connection, Result, params};
 use std::env;
 
 fn get_db_url() -> String {
@@ -10,15 +10,69 @@ fn get_db_url() -> String {
 
 pub fn default_assets() -> Vec<Assets> {
     vec![
-        Assets { symbol: "SPY".to_string(),  name: "SPDR S&P 500 ETF".to_string(),            asset_class: "ETF".to_string(),   sector: "Broad Market".to_string(), currency: "USD".to_string() },
-        Assets { symbol: "QQQ".to_string(),  name: "Invesco Nasdaq 100 ETF".to_string(),       asset_class: "ETF".to_string(),   sector: "Broad Market".to_string(), currency: "USD".to_string() },
-        Assets { symbol: "IWM".to_string(),  name: "iShares Russell 2000 ETF".to_string(),     asset_class: "ETF".to_string(),   sector: "Broad Market".to_string(), currency: "USD".to_string() },
-        Assets { symbol: "NVDA".to_string(), name: "NVIDIA Corporation".to_string(),           asset_class: "Stock".to_string(), sector: "Technology".to_string(),   currency: "USD".to_string() },
-        Assets { symbol: "XOM".to_string(),  name: "ExxonMobil Corporation".to_string(),       asset_class: "Stock".to_string(), sector: "Energy".to_string(),       currency: "USD".to_string() },
-        Assets { symbol: "CVX".to_string(),  name: "Chevron Corporation".to_string(),          asset_class: "Stock".to_string(), sector: "Energy".to_string(),       currency: "USD".to_string() },
-        Assets { symbol: "COP".to_string(),  name: "ConocoPhillips".to_string(),               asset_class: "Stock".to_string(), sector: "Energy".to_string(),       currency: "USD".to_string() },
-        Assets { symbol: "GLD".to_string(),  name: "SPDR Gold Shares ETF".to_string(),         asset_class: "ETF".to_string(),   sector: "Commodity".to_string(),    currency: "USD".to_string() },
-        Assets { symbol: "SLV".to_string(),  name: "iShares Silver Trust ETF".to_string(),     asset_class: "ETF".to_string(),   sector: "Commodity".to_string(),    currency: "USD".to_string() },
+        Assets {
+            symbol: "SPY".to_string(),
+            name: "SPDR S&P 500 ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Broad Market".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "QQQ".to_string(),
+            name: "Invesco Nasdaq 100 ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Broad Market".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "IWM".to_string(),
+            name: "iShares Russell 2000 ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Broad Market".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "NVDA".to_string(),
+            name: "NVIDIA Corporation".to_string(),
+            asset_class: "Stock".to_string(),
+            sector: "Technology".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "XOM".to_string(),
+            name: "ExxonMobil Corporation".to_string(),
+            asset_class: "Stock".to_string(),
+            sector: "Energy".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "CVX".to_string(),
+            name: "Chevron Corporation".to_string(),
+            asset_class: "Stock".to_string(),
+            sector: "Energy".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "COP".to_string(),
+            name: "ConocoPhillips".to_string(),
+            asset_class: "Stock".to_string(),
+            sector: "Energy".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "GLD".to_string(),
+            name: "SPDR Gold Shares ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Commodity".to_string(),
+            currency: "USD".to_string(),
+        },
+        Assets {
+            symbol: "SLV".to_string(),
+            name: "iShares Silver Trust ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Commodity".to_string(),
+            currency: "USD".to_string(),
+        },
     ]
 }
 
@@ -54,7 +108,7 @@ pub fn initialize_db() -> Result<()> {
                      PRIMARY KEY (date, series_id)
                      );
              COMMIT;
-        "
+        ",
     )?;
 
     let assets = Models::Assets(default_assets());
@@ -63,50 +117,48 @@ pub fn initialize_db() -> Result<()> {
 }
 
 pub fn insert_data(data_model: Models, conn: &Connection) -> Result<()> {
-        match data_model {
-                Models::Assets(assets) => {
-                        conn.execute_batch("BEGIN")?;
-                        for asset in assets {
-                                conn.execute(
+    match data_model {
+        Models::Assets(assets) => {
+            conn.execute_batch("BEGIN")?;
+            for asset in assets {
+                conn.execute(
                                         "INSERT OR IGNORE INTO assets (symbol, name, asset_class, sector, currency) VALUES (?, ?, ?, ?, ?)",
                                         params![asset.symbol, asset.name, asset.asset_class, asset.sector, asset.currency]
                                 )?;
-                        }
-                        conn.execute_batch("COMMIT")?;
-                }
+            }
+            conn.execute_batch("COMMIT")?;
+        }
 
-                Models::Pricing(pricing) => {
-                        conn.execute_batch("BEGIN")?;
-                        for p in pricing {
-                                conn.execute(
+        Models::Pricing(pricing) => {
+            conn.execute_batch("BEGIN")?;
+            for p in pricing {
+                conn.execute(
                                         "INSERT INTO pricing (datetime, symbol, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)",
                                         params![p.datetime.to_string(), p.symbol, p.open, p.high, p.low, p.close, p.volume]
                                 )?;
-                        }
-                        conn.execute_batch("COMMIT")?;
-                }
+            }
+            conn.execute_batch("COMMIT")?;
+        }
 
-                Models::MacroData(macro_data) => {
-                        conn.execute_batch("BEGIN")?;
-                        for m in macro_data {
-                                conn.execute(
+        Models::MacroData(macro_data) => {
+            conn.execute_batch("BEGIN")?;
+            for m in macro_data {
+                conn.execute(
                                         "INSERT OR IGNORE INTO macro_data (date, series_id, value, frequency) VALUES (?, ?, ?, ?)",
                                         params![m.date.to_string(), m.series_id, m.value, m.frequency]
                                 )?;
-                        }
-                        conn.execute_batch("COMMIT")?;
-                }
-
+            }
+            conn.execute_batch("COMMIT")?;
         }
-        Ok(())
+    }
+    Ok(())
 }
-
 
 pub fn get_symbol_prices(
     symbols: Vec<String>,
     start_date: NaiveDate,
     end_date: NaiveDate,
-    conn: &Connection
+    conn: &Connection,
 ) -> anyhow::Result<Vec<Pricing>> {
     let placeholders = symbols.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
     let sql = format!(
@@ -136,19 +188,18 @@ pub fn get_symbol_prices(
     Ok(results)
 }
 
-
 // This was simply a test function to see if entities get created..
-pub fn show_tables() -> Result<()> { 
-    let db_url = get_db_url();                                    
+pub fn show_tables() -> Result<()> {
+    let db_url = get_db_url();
     let conn = Connection::open(db_url)?;
     let mut stmt = conn.prepare("DESCRIBE pricing")?;
-    let mut rows = stmt.query([])?;                                      
+    let mut rows = stmt.query([])?;
     while let Some(row) = rows.next()? {
         let col_name: String = row.get(0)?;
-        let col_type: String = row.get(1)?;                                  
-        println!("{}: {}", col_name, col_type);                                            
+        let col_type: String = row.get(1)?;
+        println!("{}: {}", col_name, col_type);
     }
-    Ok(())                                                               
+    Ok(())
 }
 
 #[cfg(test)]
@@ -187,9 +238,10 @@ mod tests {
                         PRIMARY KEY (date, series_id)
                         );
                 COMMIT;
-            "
-        ).unwrap();
-    conn
+            ",
+        )
+        .unwrap();
+        conn
     }
 
     #[test]
@@ -198,14 +250,17 @@ mod tests {
         let row = Pricing {
             datetime: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
             symbol: "AAPL".to_string(),
-            open: 185.0, high: 188.5, low: 184.2,
-            close: 187.0, volume: 1_000_000,
+            open: 185.0,
+            high: 188.5,
+            low: 184.2,
+            close: 187.0,
+            volume: 1_000_000,
         };
 
         insert_data(Models::Pricing(vec![row]), &conn).unwrap();
 
         let mut stmt = conn.prepare(
-            "SELECT CAST(datetime AS VARCHAR), symbol, open, high, low, close,volume FROM pricing"
+            "SELECT CAST(datetime AS VARCHAR), symbol, open, high, low, close, volume FROM pricing"
         ).unwrap();
         let mut rows = stmt.query([]).unwrap();
         let r = rows.next().unwrap().unwrap();
@@ -223,18 +278,18 @@ mod tests {
     fn test_assets_insert_roundtrip() {
         let conn: Connection = setup_conn();
 
-        let row: Assets = Assets { 
-            symbol: "SPY".to_string(),  
-            name: "SPDR S&P 500 ETF".to_string(),            
-            asset_class: "ETF".to_string(),   
-            sector: "Broad Market".to_string(), 
-            currency: "USD".to_string() 
+        let row: Assets = Assets {
+            symbol: "SPY".to_string(),
+            name: "SPDR S&P 500 ETF".to_string(),
+            asset_class: "ETF".to_string(),
+            sector: "Broad Market".to_string(),
+            currency: "USD".to_string(),
         };
         insert_data(Models::Assets(vec![row]), &conn).unwrap();
 
-        let mut stmt = conn.prepare(
-            "SELECT symbol, name, asset_class, sector, currency FROM assets"
-        ).unwrap();
+        let mut stmt = conn
+            .prepare("SELECT symbol, name, asset_class, sector, currency FROM assets")
+            .unwrap();
         let mut rows = stmt.query([]).unwrap();
         let r = rows.next().unwrap().unwrap();
 
@@ -251,8 +306,11 @@ mod tests {
         let row = Pricing {
             datetime: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
             symbol: "AAPL".to_string(),
-            open: 185.0, high: 188.5, low: 184.2,
-            close: 187.0, volume: 1_000_000,
+            open: 185.0,
+            high: 188.5,
+            low: 184.2,
+            close: 187.0,
+            volume: 1_000_000,
         };
 
         insert_data(Models::Pricing(vec![row]), &conn).unwrap();
@@ -260,8 +318,11 @@ mod tests {
         let duplicate = Pricing {
             datetime: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
             symbol: "AAPL".to_string(),
-            open: 190.0, high: 192.0, low: 188.0,
-            close: 191.0, volume: 500_000,
+            open: 190.0,
+            high: 192.0,
+            low: 188.0,
+            close: 191.0,
+            volume: 500_000,
         };
 
         assert!(insert_data(Models::Pricing(vec![duplicate]), &conn).is_err());
@@ -290,7 +351,9 @@ mod tests {
 
         insert_data(Models::Assets(vec![duplicate]), &conn).unwrap();
 
-        let mut stmt = conn.prepare("SELECT COUNT(*) FROM assets WHERE symbol = 'SPY'").unwrap();
+        let mut stmt = conn
+            .prepare("SELECT COUNT(*) FROM assets WHERE symbol = 'SPY'")
+            .unwrap();
         let mut rows = stmt.query([]).unwrap();
         let count: i64 = rows.next().unwrap().unwrap().get(0).unwrap();
         assert_eq!(count, 1);
@@ -309,9 +372,9 @@ mod tests {
 
         insert_data(Models::MacroData(vec![row]), &conn).unwrap();
 
-        let mut stmt = conn.prepare(
-            "SELECT CAST(date AS VARCHAR), series_id, value, frequency FROM macro_data"
-        ).unwrap();
+        let mut stmt = conn
+            .prepare("SELECT CAST(date AS VARCHAR), series_id, value, frequency FROM macro_data")
+            .unwrap();
         let mut rows = stmt.query([]).unwrap();
         let r = rows.next().unwrap().unwrap();
 
@@ -343,9 +406,9 @@ mod tests {
 
         insert_data(Models::MacroData(vec![duplicate]), &conn).unwrap();
 
-        let mut stmt = conn.prepare(
-            "SELECT COUNT(*) FROM macro_data WHERE series_id = 'DGS10'"
-        ).unwrap();
+        let mut stmt = conn
+            .prepare("SELECT COUNT(*) FROM macro_data WHERE series_id = 'DGS10'")
+            .unwrap();
         let mut rows = stmt.query([]).unwrap();
         let count: i64 = rows.next().unwrap().unwrap().get(0).unwrap();
         assert_eq!(count, 1);

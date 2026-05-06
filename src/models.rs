@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
 
 pub enum Models {
-      Pricing(Vec<Pricing>),
-      Assets(Vec<Assets>),
-      MacroData(Vec<MacroData>),
+    Pricing(Vec<Pricing>),
+    Assets(Vec<Assets>),
+    MacroData(Vec<MacroData>),
 }
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub struct Assets {
     pub name: String,
     pub asset_class: String,
     pub sector: String,
-    pub currency: String
+    pub currency: String,
 }
 
 pub struct MacroData {

@@ -1,19 +1,9 @@
-pub mod returns {
+pub mod returns {}
 
-}
+pub mod risk {}
 
-pub mod risk {
+pub mod ratios {}
 
-}
+pub mod diversification {}
 
-pub mod ratios {
-
-}
-
-pub mod diversification {
-
-}
-
-pub mod benchmark {
-    
-}
+pub mod benchmark {}
