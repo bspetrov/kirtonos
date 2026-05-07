@@ -275,7 +275,7 @@ mod tests {
             volume: 1_000_000,
         };
 
-        insert_data(Models::Pricing(vec![row]), &conn).unwrap();
+        insert_data(Models::Pricing(vec![row]), Some(&conn)).unwrap();
 
         let mut stmt = conn.prepare(
             "SELECT CAST(datetime AS VARCHAR), symbol, open, high, low, close, volume FROM pricing"
@@ -303,7 +303,7 @@ mod tests {
             sector: "Broad Market".to_string(),
             currency: "USD".to_string(),
         };
-        insert_data(Models::Assets(vec![row]), &conn).unwrap();
+        insert_data(Models::Assets(vec![row]), Some(&conn)).unwrap();
 
         let mut stmt = conn
             .prepare("SELECT symbol, name, asset_class, sector, currency FROM assets")
@@ -331,7 +331,7 @@ mod tests {
             volume: 1_000_000,
         };
 
-        insert_data(Models::Pricing(vec![row]), &conn).unwrap();
+        insert_data(Models::Pricing(vec![row]), Some(&conn)).unwrap();
 
         let duplicate = Pricing {
             datetime: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
@@ -343,7 +343,7 @@ mod tests {
             volume: 500_000,
         };
 
-        assert!(insert_data(Models::Pricing(vec![duplicate]), &conn).is_err());
+        assert!(insert_data(Models::Pricing(vec![duplicate]), Some(&conn)).is_err());
     }
 
     #[test]
@@ -357,7 +357,7 @@ mod tests {
             currency: "USD".to_string(),
         };
 
-        insert_data(Models::Assets(vec![row]), &conn).unwrap();
+        insert_data(Models::Assets(vec![row]), Some(&conn)).unwrap();
 
         let duplicate = Assets {
             symbol: "SPY".to_string(),
@@ -367,7 +367,7 @@ mod tests {
             currency: "USD".to_string(),
         };
 
-        insert_data(Models::Assets(vec![duplicate]), &conn).unwrap();
+        insert_data(Models::Assets(vec![duplicate]), Some(&conn)).unwrap();
 
         let mut stmt = conn
             .prepare("SELECT COUNT(*) FROM assets WHERE symbol = 'SPY'")
@@ -388,7 +388,7 @@ mod tests {
             frequency: "daily".to_string(),
         };
 
-        insert_data(Models::MacroData(vec![row]), &conn).unwrap();
+        insert_data(Models::MacroData(vec![row]), Some(&conn)).unwrap();
 
         let mut stmt = conn
             .prepare("SELECT CAST(date AS VARCHAR), series_id, value, frequency FROM macro_data")
@@ -413,7 +413,7 @@ mod tests {
             frequency: "daily".to_string(),
         };
 
-        insert_data(Models::MacroData(vec![row]), &conn).unwrap();
+        insert_data(Models::MacroData(vec![row]), Some(&conn)).unwrap();
 
         let duplicate = MacroData {
             date: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
@@ -422,7 +422,7 @@ mod tests {
             frequency: "daily".to_string(),
         };
 
-        insert_data(Models::MacroData(vec![duplicate]), &conn).unwrap();
+        insert_data(Models::MacroData(vec![duplicate]), Some(&conn)).unwrap();
 
         let mut stmt = conn
             .prepare("SELECT COUNT(*) FROM macro_data WHERE series_id = 'DGS10'")
