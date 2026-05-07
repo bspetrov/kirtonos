@@ -112,43 +112,45 @@ pub fn initialize_db() -> Result<()> {
     )?;
 
     let assets = Models::Assets(default_assets());
-    insert_data(assets, &conn)?;
+    insert_data(assets, Some(&conn))?;
     Ok(())
 }
 
-pub fn insert_data(data_model: Models, conn: &Connection) -> Result<()> {
-    match data_model {
-        Models::Assets(assets) => {
-            conn.execute_batch("BEGIN")?;
-            for asset in assets {
-                conn.execute(
-                                        "INSERT OR IGNORE INTO assets (symbol, name, asset_class, sector, currency) VALUES (?, ?, ?, ?, ?)",
-                                        params![asset.symbol, asset.name, asset.asset_class, asset.sector, asset.currency]
-                                )?;
+pub fn insert_data(data_model: Models, conn: Option<&Connection>) -> Result<()> {
+    if let Some(conn) = conn {
+        match data_model {
+            Models::Assets(assets) => {
+                conn.execute_batch("BEGIN")?;
+                for asset in assets {
+                    conn.execute(
+                                            "INSERT OR IGNORE INTO assets (symbol, name, asset_class, sector, currency) VALUES (?, ?, ?, ?, ?)",
+                                            params![asset.symbol, asset.name, asset.asset_class, asset.sector, asset.currency]
+                                    )?;
+                }
+                conn.execute_batch("COMMIT")?;
             }
-            conn.execute_batch("COMMIT")?;
-        }
 
-        Models::Pricing(pricing) => {
-            conn.execute_batch("BEGIN")?;
-            for p in pricing {
-                conn.execute(
-                                        "INSERT INTO pricing (datetime, symbol, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                        params![p.datetime.to_string(), p.symbol, p.open, p.high, p.low, p.close, p.volume]
-                                )?;
+            Models::Pricing(pricing) => {
+                conn.execute_batch("BEGIN")?;
+                for p in pricing {
+                    conn.execute(
+                                            "INSERT INTO pricing (datetime, symbol, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                            params![p.datetime.to_string(), p.symbol, p.open, p.high, p.low, p.close, p.volume]
+                                    )?;
+                }
+                conn.execute_batch("COMMIT")?;
             }
-            conn.execute_batch("COMMIT")?;
-        }
 
-        Models::MacroData(macro_data) => {
-            conn.execute_batch("BEGIN")?;
-            for m in macro_data {
-                conn.execute(
-                                        "INSERT OR IGNORE INTO macro_data (date, series_id, value, frequency) VALUES (?, ?, ?, ?)",
-                                        params![m.date.to_string(), m.series_id, m.value, m.frequency]
-                                )?;
+            Models::MacroData(macro_data) => {
+                conn.execute_batch("BEGIN")?;
+                for m in macro_data {
+                    conn.execute(
+                                            "INSERT OR IGNORE INTO macro_data (date, series_id, value, frequency) VALUES (?, ?, ?, ?)",
+                                            params![m.date.to_string(), m.series_id, m.value, m.frequency]
+                                    )?;
+                }
+                conn.execute_batch("COMMIT")?;
             }
-            conn.execute_batch("COMMIT")?;
         }
     }
     Ok(())
@@ -186,6 +188,22 @@ pub fn get_symbol_prices(
         });
     }
     Ok(results)
+}
+
+pub async fn get_assets() -> Result<Vec<String>> {
+    let db_url = get_db_url();
+    let conn = Connection::open(db_url)?;
+
+    let mut stmt = conn.prepare("SELECT symbol from assets")?;
+    let mut rows = stmt.query([])?;
+
+    let mut assets = Vec::new();
+
+    while let Some(row) = rows.next()? {
+        assets.push(row.get(0)?)
+    }
+
+    Ok(assets)
 }
 
 // This was simply a test function to see if entities get created..

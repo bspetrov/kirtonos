@@ -74,7 +74,7 @@ pub mod crypto {
     pub const SYMBOLS: &[&str] = &["BTCUSDT", "ETHUSDT"];
     pub const START_MS: i64 = 1483228800000; // 2017-01-01 UTC
 
-    fn parse_binance_row(
+    pub fn parse_binance_row(
         row: &[serde_json::Value],
         symbol: &str,
     ) -> anyhow::Result<super::Pricing> {
@@ -300,5 +300,35 @@ mod tests {
         assert!(obs.value.parse::<f64>().is_err());
     }
 
-    //TODO - test_binance_row_parses_to_pricing
+    #[test]
+    fn test_binance_row_parses_to_pricing() {
+        let symbol = "BTCUSDT";
+        let row = serde_json::json!([                                                                                  
+            1483228800,
+            "95000.0",                                                                                                 
+            "96000.0",
+            "94000.0",                                                                                                 
+            "95500.0",                                                                                               
+            "1234.5"                                                                                                 
+        ]);
+        let result = crypto::parse_binance_row(row.as_array().unwrap(), "BTCUSDT").unwrap();
+
+        let timestamp_ms = row[0].as_i64().unwrap();
+        let date = super::DateTime::from_timestamp(timestamp_ms / 1000, 0)
+            .unwrap()
+            .date_naive();
+        let pricing_mock = Pricing {
+            datetime: date,
+            symbol: symbol.to_string(),
+            open: row[1].as_str().unwrap().parse().unwrap(),
+            high: row[2].as_str().unwrap().parse().unwrap(),
+            low: row[3].as_str().unwrap().parse().unwrap(),
+            close: row[4].as_str().unwrap().parse().unwrap(),
+            volume: row[5].as_str().unwrap().parse::<f64>().unwrap() as i64,
+        };
+
+        assert_eq!(pricing_mock, result);
+
+    }
+
 }

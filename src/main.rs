@@ -5,20 +5,22 @@ mod metrics;
 mod models;
 mod report;
 use dotenv;
+mod routes;
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-    println!("Welcome, to Kirtonos (but faster!)");
+    println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+    println!("Starting app...");
 
+    println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     match db::initialize_db() {
         Ok(_) => println!("Database initialized and running.."),
         Err(e) => println!("Error -> {e}"),
     }
-
-    let spy_data = api::stocks::fetch_daily_ohlcv("SPY").await.unwrap();
-    let fc = api::crypto::fetch_crypto("BTCUSDT").await.unwrap();
-    // let fred_data = api::economic::fetch_fred_data("FEDFUNDS").await.unwrap();
-    // let qqq_data = api::stocks::fetch_daily_ohlcv("QQQ").await.unwrap();
-    // let iwm_data = api::stocks::fetch_daily_ohlcv("IWM").await.unwrap();
+    println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+    let app = routes::build_router();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("Kirtonos REST listening on http://0.0.0.0:3000");
+    axum::serve(listener, app).await.unwrap();
 }

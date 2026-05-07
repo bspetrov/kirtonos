@@ -5,10 +5,10 @@ A Rust REST API for quantitative financial analysis and backtesting. Fetches mar
 ## Features
 
 - Fetches daily OHLCV data for stocks, ETFs, and commodities via Twelve Data
-- Fetches cryptocurrency data (BTC, ETH) via CoinGecko
-- Fetches macro data and risk-free rates (3-month T-bill, 10-year Treasury) via FRED
+- Fetches cryptocurrency data (BTC, ETH) via Binance
+- Fetches macro and economic data (yields, inflation, unemployment, GDP, oil) via FRED
 - Persists all data locally in an embedded DuckDB database
-- REST API for consumption by quantitative analysts
+- REST API built with axum for consumption by quantitative analysts
 - Portfolio metrics: returns, risk, Sharpe ratio, diversification, benchmarking (in progress)
 - Strategy backtesting engine (in progress)
 
@@ -16,12 +16,13 @@ A Rust REST API for quantitative financial analysis and backtesting. Fetches mar
 
 | Category | Tickers |
 |---|---|
-| Indices/ETFs | SPY, QQQ, IWM |
+| Broad Market ETFs | SPY, QQQ, IWM |
+| Sector ETFs | XLE, XLK, XLF |
 | Tech | NVDA |
 | Energy | XOM, CVX, COP |
 | Commodities | GLD, SLV |
-| Crypto | BTC, ETH |
-| Macro / Risk-free | 10Y Treasury, 3M T-bill (FRED) |
+| Crypto | BTCUSDT, ETHUSDT (Binance) |
+| Macro | DGS10, DGS2, DTB3, FEDFUNDS, CPIAUCSL, UNRATE, GDP, T10Y2Y, DCOILWTICO (FRED) |
 
 ## Requirements
 
@@ -46,16 +47,19 @@ FRED_KEY=your_fred_api_key
 API keys:
 - Twelve Data: [twelvedata.com](https://twelvedata.com) — free tier, 800 requests/day
 - FRED: [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/fred/) — free, requires registration
+- Binance: no API key required for public market data endpoints
 
 ```bash
 cargo run
 ```
 
+The server starts on `http://0.0.0.0:3000`.
+
 ## Commands
 
 ```bash
 cargo build       # compile
-cargo run         # run
+cargo run         # run the server
 cargo test        # run all tests
 cargo clippy      # lint
 cargo fmt         # format
@@ -66,10 +70,12 @@ cargo fmt         # format
 | Concern | Crate |
 |---|---|
 | Async runtime | `tokio` |
+| REST API | `axum` |
 | HTTP client | `reqwest` |
 | Database | `duckdb` (embedded, columnar) |
 | Serialization | `serde` / `serde_json` |
 | Error handling | `anyhow` |
 | Date/time | `chrono` |
+| Analytics | `polars` |
 | CLI | `clap` |
 | Terminal output | `colored` |
