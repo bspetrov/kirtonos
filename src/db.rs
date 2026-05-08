@@ -196,6 +196,23 @@ pub fn get_symbol_prices(
     Ok(results)
 }
 
+pub fn get_latest_date(symbol: &str) -> anyhow::Result<Option<NaiveDate>> {
+    let conn = Connection::open(get_db_url())?;
+    let mut stmt = conn.prepare(
+        "SELECT CAST(MAX(datetime) AS VARCHAR) FROM pricing WHERE symbol = ?"
+    )?;
+    let mut rows = stmt.query(params![symbol])?;
+
+    if let Some(row) = rows.next()? {
+        let val: Option<String> = row.get(0)?;
+        return match val {
+            Some(s) => Ok(Some(NaiveDate::parse_from_str(&s, "%Y-%m-%d")?)),
+            None => Ok(None),
+        };
+    }
+    Ok(None)
+}
+
 pub fn get_assets() -> Result<Vec<String>> {
     let db_url = get_db_url();
     let conn = Connection::open(db_url)?;

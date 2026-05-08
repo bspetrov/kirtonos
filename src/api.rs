@@ -45,11 +45,11 @@ pub mod stocks {
         pub values: Vec<DailyBar>,
     }
 
-    pub async fn fetch_daily_ohlcv(symbol: &str) -> anyhow::Result<Vec<super::Pricing>> {
+    pub async fn fetch_daily_ohlcv(symbol: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::Pricing>> {
         let api_key = super::get_api_key("twelve");
         let api_url = format!(
-            "https://api.twelvedata.com/time_series?symbol={}&start_date=2010-01-01&interval=1day&adjust=all&apikey={}",
-            symbol, api_key
+            "https://api.twelvedata.com/time_series?symbol={}&start_date={}&interval=1day&adjust=all&apikey={}",
+            symbol, start_date, api_key
         );
         let response = reqwest::get(api_url).await?;
         let text: TimeSeriesResponse = response.json().await?;
@@ -93,9 +93,9 @@ pub mod crypto {
         })
     }
 
-    pub async fn fetch_crypto(symbol: &str) -> anyhow::Result<Vec<super::Pricing>> {
+    pub async fn fetch_crypto(symbol: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::Pricing>> {
         let mut query_results = Vec::new();
-        let mut start_ms = START_MS;
+        let mut start_ms = start_date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp_millis();
 
         loop {
             let url = format!(

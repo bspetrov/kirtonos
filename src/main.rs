@@ -6,6 +6,7 @@ mod models;
 mod report;
 use dotenv;
 mod routes;
+use chrono::{NaiveDate, Local, Duration};
 
 #[tokio::main]
 async fn main() {
@@ -35,11 +36,25 @@ async fn main() {
 async fn sync_market_data() -> anyhow::Result<String> {
     println!("Syncing database with market data for all default assets..");
     let assets = db::get_assets()?;
+    let today = Local::now().date_naive();
+
     for asset in assets {
-        let twelve_data = api::stocks::fetch_daily_ohlcv(&asset).await?;
-        println!("Fetching data for -> {}", asset);
-        let _ = db::insert_data(models::Models::Pricing(twelve_data), None)?;
-        println!("Fetched data successfully for -> {}", asset);
+        let start_date = match db::get_latest_date(&asset)? {
+            Some(date) => {
+                let next = date + Duration::days(1);
+                if next >= today {
+                    println!("{} is already up to date, skipping..", asset);
+                    continue;
+                }
+                next
+            }
+            None => NaiveDate::from_ymd_opt(2010, 1, 1).unwrap(),
+        };
+
+        println!("Fetching {} from {}..", asset, start_date);
+        let results = api::stocks::fetch_daily_ohlcv(&asset, start_date).await?;
+        db::insert_data(models::Models::Pricing(results), None)?;
+        println!("Fetched data successfully for {}", asset);
     }
     Ok(String::from("Market data synced successfully"))
 }
