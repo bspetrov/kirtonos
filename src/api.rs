@@ -45,7 +45,10 @@ pub mod stocks {
         pub values: Vec<DailyBar>,
     }
 
-    pub async fn fetch_daily_ohlcv(symbol: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::Pricing>> {
+    pub async fn fetch_daily_ohlcv(
+        symbol: &str,
+        start_date: super::NaiveDate,
+    ) -> anyhow::Result<Vec<super::Pricing>> {
         let api_key = super::get_api_key("twelve");
         let api_url = format!(
             "https://api.twelvedata.com/time_series?symbol={}&start_date={}&interval=1day&adjust=all&apikey={}",
@@ -93,9 +96,16 @@ pub mod crypto {
         })
     }
 
-    pub async fn fetch_crypto(symbol: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::Pricing>> {
+    pub async fn fetch_crypto(
+        symbol: &str,
+        start_date: super::NaiveDate,
+    ) -> anyhow::Result<Vec<super::Pricing>> {
         let mut query_results = Vec::new();
-        let mut start_ms = start_date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp_millis();
+        let mut start_ms = start_date
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .timestamp_millis();
 
         loop {
             let url = format!(
@@ -151,7 +161,10 @@ pub mod economic {
         pub observations: Vec<FedData>,
     }
 
-    pub async fn fetch_fred_data(series_id: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::MacroData>> {
+    pub async fn fetch_fred_data(
+        series_id: &str,
+        start_date: super::NaiveDate,
+    ) -> anyhow::Result<Vec<super::MacroData>> {
         let fred_api_key = super::get_api_key("fred");
         let fred_url = format!(
             "https://api.stlouisfed.org/fred/series/observations?series_id={}&observation_start={}&api_key={}&file_type=json",
@@ -303,13 +316,8 @@ mod tests {
     #[test]
     fn test_binance_row_parses_to_pricing() {
         let symbol = "BTCUSDT";
-        let row = serde_json::json!([                                                                                  
-            1483228800,
-            "95000.0",                                                                                                 
-            "96000.0",
-            "94000.0",                                                                                                 
-            "95500.0",                                                                                               
-            "1234.5"                                                                                                 
+        let row = serde_json::json!([
+            1483228800, "95000.0", "96000.0", "94000.0", "95500.0", "1234.5"
         ]);
         let result = crypto::parse_binance_row(row.as_array().unwrap(), "BTCUSDT").unwrap();
 
@@ -328,7 +336,5 @@ mod tests {
         };
 
         assert_eq!(pricing_mock, result);
-
     }
-
 }

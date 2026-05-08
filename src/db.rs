@@ -131,39 +131,39 @@ pub fn insert_data(data_model: Models, conn: Option<&Connection>) -> Result<()> 
         }
     };
     match data_model {
-            Models::Assets(assets) => {
-                conn.execute_batch("BEGIN")?;
-                for asset in assets {
-                    conn.execute(
+        Models::Assets(assets) => {
+            conn.execute_batch("BEGIN")?;
+            for asset in assets {
+                conn.execute(
                                             "INSERT OR IGNORE INTO assets (symbol, name, asset_class, sector, currency) VALUES (?, ?, ?, ?, ?)",
                                             params![asset.symbol, asset.name, asset.asset_class, asset.sector, asset.currency]
                                     )?;
-                }
-                conn.execute_batch("COMMIT")?;
             }
+            conn.execute_batch("COMMIT")?;
+        }
 
-            Models::Pricing(pricing) => {
-                conn.execute_batch("BEGIN")?;
-                for p in pricing {
-                    conn.execute(
+        Models::Pricing(pricing) => {
+            conn.execute_batch("BEGIN")?;
+            for p in pricing {
+                conn.execute(
                                             "INSERT INTO pricing (datetime, symbol, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)",
                                             params![p.datetime.to_string(), p.symbol, p.open, p.high, p.low, p.close, p.volume]
                                     )?;
-                }
-                conn.execute_batch("COMMIT")?;
             }
+            conn.execute_batch("COMMIT")?;
+        }
 
-            Models::MacroData(macro_data) => {
-                conn.execute_batch("BEGIN")?;
-                for m in macro_data {
-                    conn.execute(
+        Models::MacroData(macro_data) => {
+            conn.execute_batch("BEGIN")?;
+            for m in macro_data {
+                conn.execute(
                                             "INSERT OR IGNORE INTO macro_data (date, series_id, value, frequency) VALUES (?, ?, ?, ?)",
                                             params![m.date.to_string(), m.series_id, m.value, m.frequency]
                                     )?;
-                }
-                conn.execute_batch("COMMIT")?;
             }
+            conn.execute_batch("COMMIT")?;
         }
+    }
     Ok(())
 }
 
@@ -171,8 +171,16 @@ pub fn get_symbol_prices(
     symbols: Vec<String>,
     start_date: NaiveDate,
     end_date: NaiveDate,
-    conn: &Connection,
+    conn: Option<&Connection>,
 ) -> anyhow::Result<Vec<Pricing>> {
+    let owned;
+    let conn: &Connection = match conn {
+        Some(c) => c,
+        None => {
+            owned = Connection::open(get_db_url())?;
+            &owned
+        }
+    };
     let placeholders = symbols.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
     let sql = format!(
         "SELECT CAST(datetime AS VARCHAR), symbol, open, high, low, close, volume FROM pricing WHERE symbol IN ({}) AND datetime >= ? AND datetime <= ?",
@@ -204,8 +212,10 @@ pub fn get_symbol_prices(
 pub fn get_latest_date(id: &str, table: DataTable) -> anyhow::Result<Option<NaiveDate>> {
     let conn = Connection::open(get_db_url())?;
     let sql = match table {
-        DataTable::Pricing  => "SELECT CAST(MAX(datetime) AS VARCHAR) FROM pricing WHERE symbol = ?",
-        DataTable::MacroData => "SELECT CAST(MAX(date) AS VARCHAR) FROM macro_data WHERE series_id = ?",
+        DataTable::Pricing => "SELECT CAST(MAX(datetime) AS VARCHAR) FROM pricing WHERE symbol = ?",
+        DataTable::MacroData => {
+            "SELECT CAST(MAX(date) AS VARCHAR) FROM macro_data WHERE series_id = ?"
+        }
     };
     let mut stmt = conn.prepare(sql)?;
     let mut rows = stmt.query(params![id])?;

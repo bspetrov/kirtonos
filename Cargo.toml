@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 axum = "0.8.9"
-chrono = "0.4.41"
+chrono = { version = "0.4.41", features = ["serde"] }
 clap = "4.6.1"
 colored = "3.1.1"
 dotenv = "0.15.0"

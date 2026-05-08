@@ -6,7 +6,7 @@ pub enum Models {
     MacroData(Vec<MacroData>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize)]
 pub struct Pricing {
     pub datetime: NaiveDate,
     pub symbol: String,

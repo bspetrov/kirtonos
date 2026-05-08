@@ -6,7 +6,7 @@ mod models;
 mod report;
 use dotenv;
 mod routes;
-use chrono::{NaiveDate, Local, Duration};
+use chrono::{Duration, Local, NaiveDate};
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +20,7 @@ async fn main() {
         Err(e) => println!("Error -> {e}"),
     }
     println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-    
+
     match sync_market_data().await {
         Ok(v) => println!("{}", v),
         Err(e) => println!("Problem syncing market data: {}", e),
