@@ -13,13 +13,14 @@ async fn test() -> String {
     String::from("test, test!")
 }
 
-// TODO-> Finish this
-async fn collect_macro_data() -> &'static str {
-    let assets = get_assets().await.unwrap();
+async fn collect_macro_data() -> String{
+    let assets = get_assets().unwrap();
 
     for asset in assets {
         let twelve_data = fetch_daily_ohlcv(&asset).await.unwrap();
-        // insert_data(Models::Pricing(twelve_data), None);
+        println!("Fetching data for -> {}", asset);
+        let _ = insert_data(Models::Pricing(twelve_data), None);
+        println!("Fetched data successfully for -> {}", asset);
     }
-    "Macro data collected inside DuckDB!"
+    String::from("Fetched data successfully!")
 }

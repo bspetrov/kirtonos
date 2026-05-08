@@ -59,13 +59,13 @@ pub fn default_assets() -> Vec<Assets> {
             sector: "Energy".to_string(),
             currency: "USD".to_string(),
         },
-        Assets {
-            symbol: "GLD".to_string(),
-            name: "SPDR Gold Shares ETF".to_string(),
-            asset_class: "ETF".to_string(),
-            sector: "Commodity".to_string(),
-            currency: "USD".to_string(),
-        },
+        // Assets {
+        //     symbol: "GLD".to_string(),
+        //     name: "SPDR Gold Shares ETF".to_string(),
+        //     asset_class: "ETF".to_string(),
+        //     sector: "Commodity".to_string(),
+        //     currency: "USD".to_string(),
+        // },
         Assets {
             symbol: "SLV".to_string(),
             name: "iShares Silver Trust ETF".to_string(),
@@ -117,8 +117,15 @@ pub fn initialize_db() -> Result<()> {
 }
 
 pub fn insert_data(data_model: Models, conn: Option<&Connection>) -> Result<()> {
-    if let Some(conn) = conn {
-        match data_model {
+    let owned;
+    let conn: &Connection = match conn {
+        Some(c) => c,
+        None => {
+            owned = Connection::open(get_db_url())?;
+            &owned
+        }
+    };
+    match data_model {
             Models::Assets(assets) => {
                 conn.execute_batch("BEGIN")?;
                 for asset in assets {
@@ -152,7 +159,6 @@ pub fn insert_data(data_model: Models, conn: Option<&Connection>) -> Result<()> 
                 conn.execute_batch("COMMIT")?;
             }
         }
-    }
     Ok(())
 }
 
@@ -190,7 +196,7 @@ pub fn get_symbol_prices(
     Ok(results)
 }
 
-pub async fn get_assets() -> Result<Vec<String>> {
+pub fn get_assets() -> Result<Vec<String>> {
     let db_url = get_db_url();
     let conn = Connection::open(db_url)?;
 
@@ -275,7 +281,7 @@ mod tests {
             volume: 1_000_000,
         };
 
-        insert_data(Models::Pricing(vec![row]), Some(&conn)).unwrap();
+        insert_data(Models::Pricing(vec![row]), Some(&conn));
 
         let mut stmt = conn.prepare(
             "SELECT CAST(datetime AS VARCHAR), symbol, open, high, low, close, volume FROM pricing"
