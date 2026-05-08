@@ -151,11 +151,11 @@ pub mod economic {
         pub observations: Vec<FedData>,
     }
 
-    pub async fn fetch_fred_data(series_id: &str) -> anyhow::Result<Vec<super::MacroData>> {
+    pub async fn fetch_fred_data(series_id: &str, start_date: super::NaiveDate) -> anyhow::Result<Vec<super::MacroData>> {
         let fred_api_key = super::get_api_key("fred");
         let fred_url = format!(
-            "https://api.stlouisfed.org/fred/series/observations?series_id={}&observation_start=2016-01-01&api_key={}&file_type=json",
-            series_id, fred_api_key
+            "https://api.stlouisfed.org/fred/series/observations?series_id={}&observation_start={}&api_key={}&file_type=json",
+            series_id, start_date, fred_api_key
         );
 
         let frequency = MACRO_SERIES

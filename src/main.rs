@@ -21,10 +21,13 @@ async fn main() {
     }
     println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     
-    let sync_result = sync_market_data().await;
-    match sync_result {
+    match sync_market_data().await {
         Ok(v) => println!("{}", v),
-        Err(e) => println!("Problem with syncing market data - {}", e) 
+        Err(e) => println!("Problem syncing market data: {}", e),
+    }
+    match sync_fred_data().await {
+        Ok(v) => println!("{}", v),
+        Err(e) => println!("Problem syncing macro data: {}", e),
     }
     println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     let app = routes::build_router();
@@ -39,7 +42,7 @@ async fn sync_market_data() -> anyhow::Result<String> {
     let today = Local::now().date_naive();
 
     for asset in assets {
-        let start_date = match db::get_latest_date(&asset)? {
+        let start_date = match db::get_latest_date(&asset, db::DataTable::Pricing)? {
             Some(date) => {
                 let next = date + Duration::days(1);
                 if next >= today {
@@ -57,4 +60,29 @@ async fn sync_market_data() -> anyhow::Result<String> {
         println!("Fetched data successfully for {}", asset);
     }
     Ok(String::from("Market data synced successfully"))
+}
+
+async fn sync_fred_data() -> anyhow::Result<String> {
+    println!("Syncing database with the latest macro data!");
+    let today = Local::now().date_naive();
+
+    for (series_id, _) in api::economic::MACRO_SERIES {
+        let start_date = match db::get_latest_date(series_id, db::DataTable::MacroData)? {
+            Some(date) => {
+                let next = date + Duration::days(1);
+                if next >= today {
+                    println!("{} is already up to date, skipping..", series_id);
+                    continue;
+                }
+                next
+            }
+            None => NaiveDate::from_ymd_opt(2016, 1, 1).unwrap(),
+        };
+
+        println!("Fetching {} from {}..", series_id, start_date);
+        let results = api::economic::fetch_fred_data(series_id, start_date).await?;
+        db::insert_data(models::Models::MacroData(results), None)?;
+        println!("Fetched data successfully for {}", series_id);
+    }
+    Ok(String::from("Macro data synced successfully"))
 }

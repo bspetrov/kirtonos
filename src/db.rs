@@ -3,6 +3,11 @@ use chrono::NaiveDate;
 use duckdb::{Connection, Result, params};
 use std::env;
 
+pub enum DataTable {
+    Pricing,
+    MacroData,
+}
+
 fn get_db_url() -> String {
     let db_url = env::var("DATABASE_URL").expect("Missing DB location -> must set!");
     db_url
@@ -196,12 +201,14 @@ pub fn get_symbol_prices(
     Ok(results)
 }
 
-pub fn get_latest_date(symbol: &str) -> anyhow::Result<Option<NaiveDate>> {
+pub fn get_latest_date(id: &str, table: DataTable) -> anyhow::Result<Option<NaiveDate>> {
     let conn = Connection::open(get_db_url())?;
-    let mut stmt = conn.prepare(
-        "SELECT CAST(MAX(datetime) AS VARCHAR) FROM pricing WHERE symbol = ?"
-    )?;
-    let mut rows = stmt.query(params![symbol])?;
+    let sql = match table {
+        DataTable::Pricing  => "SELECT CAST(MAX(datetime) AS VARCHAR) FROM pricing WHERE symbol = ?",
+        DataTable::MacroData => "SELECT CAST(MAX(date) AS VARCHAR) FROM macro_data WHERE series_id = ?",
+    };
+    let mut stmt = conn.prepare(sql)?;
+    let mut rows = stmt.query(params![id])?;
 
     if let Some(row) = rows.next()? {
         let val: Option<String> = row.get(0)?;
