@@ -203,7 +203,7 @@ pub fn get_symbol_prices(
             high: row.get(3)?,
             low: row.get(4)?,
             close: row.get(5)?,
-            volume: row.get(7)?,
+            volume: row.get(6)?,
         });
     }
     Ok(results)

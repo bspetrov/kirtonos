@@ -7,25 +7,29 @@ mod report;
 use dotenv;
 mod routes;
 use chrono::{Datelike, Duration, Local, NaiveDate};
+use std::env;
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+    let args: Vec<String> = env::args().collect();
     println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     println!("Starting app...");
-
-    println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-    match db::initialize_db() {
-        Ok(_) => println!("Database initialized and running.."),
-        Err(e) => println!("Error -> {e}"),
-    }
     println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
 
-    match sync_all_data().await {
-        Ok(_) => println!("All data synced successfully"),
-        Err(e) => println!("Problem syncing data: {}", e),
+    if args.len() > 1 && args[1] == "sync" {
+        match db::initialize_db() {
+            Ok(_) => println!("Database initialized and running.."),
+            Err(e) => println!("Error -> {e}"),
+        }
+        println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+
+        match sync_all_data().await {
+            Ok(_) => println!("All data synced successfully"),
+            Err(e) => println!("Problem syncing data: {}", e),
+        }
+        println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     }
-    println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
     let app = routes::build_router();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("Kirtonos REST listening on http://0.0.0.0:3000");
@@ -92,12 +96,25 @@ async fn sync_all_data() -> anyhow::Result<()> {
         let start_date = match db::get_latest_date(series_id, db::DataTable::MacroData)? {
             Some(date) => {
                 let is_stale = match *frequency {
-                    "daily" => date + Duration::days(1) < today,
-                    "monthly" => date.year() < today.year() || date.month() < today.month(),
+                    "daily" => date + Duration::days(2) < today,
+                    "monthly" => {
+                        // Stale only if missing data from the previous month (FRED lags ~1 month)
+                        let (prev_year, prev_month) = if today.month() == 1 {
+                            (today.year() - 1, 12u32)
+                        } else {
+                            (today.year(), today.month() - 1)
+                        };
+                        date < NaiveDate::from_ymd_opt(prev_year, prev_month, 1).unwrap()
+                    }
                     "quarterly" => {
-                        let last_q = (date.month() - 1) / 3;
+                        // Stale only if missing data from the previous quarter
                         let curr_q = (today.month() - 1) / 3;
-                        date.year() < today.year() || last_q < curr_q
+                        let (prev_q_year, prev_q_month) = if curr_q == 0 {
+                            (today.year() - 1, 10u32)
+                        } else {
+                            (today.year(), curr_q * 3 - 2)
+                        };
+                        date < NaiveDate::from_ymd_opt(prev_q_year, prev_q_month, 1).unwrap()
                     }
                     _ => date + Duration::days(1) < today,
                 };
