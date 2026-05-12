@@ -64,3 +64,55 @@ pub mod ratios {
 pub mod diversification {}
 
 pub mod benchmark {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EPS: f64 = 1e-4;
+
+    #[test]
+    fn test_simple_returns() {
+        let result = returns::calculate_simple_returns(&[100.0, 105.0, 94.5]);
+        assert_eq!(result.len(), 2);
+        assert!((result[0] - 0.05).abs() < EPS);
+        assert!((result[1] - (-0.10)).abs() < EPS);
+    }
+
+    #[test]
+    fn test_log_returns() {
+        let result = returns::calculate_log_returns(&[100.0, 105.0]);
+        assert!((result[0] - 0.04879).abs() < EPS);
+    }
+
+    #[test]
+    fn test_cumulative_return() {
+        let result = returns::cumulative_return(&[0.05, -0.10]);
+        assert!((result - (-0.055)).abs() < EPS);
+    }
+
+    #[test]
+    fn test_max_drawdown() {
+        // peak = 120, trough = 80 → (80 - 120) / 120 = -0.3333
+        let result = risk::max_drawdown(&[100.0, 120.0, 80.0, 90.0]);
+        assert!((result - (-0.3333)).abs() < EPS);
+    }
+
+    #[test]
+    fn test_max_drawdown_no_drawdown() {
+        let result = risk::max_drawdown(&[100.0, 110.0, 120.0]);
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn test_sharpe() {
+        let result = ratios::sharpe(0.15, 0.20, 0.05);
+        assert!((result - 0.5).abs() < EPS);
+    }
+
+    #[test]
+    fn test_calmar() {
+        let result = ratios::calmar(0.20, -0.10);
+        assert!((result - 2.0).abs() < EPS);
+    }
+}
