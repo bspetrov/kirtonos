@@ -50,10 +50,28 @@ API keys:
 - Binance: no API key required for public market data endpoints
 
 ```bash
-cargo run
+cargo run -- sync   # sync all market/macro data, then start the server
+cargo run           # start the server only (skip sync)
 ```
 
 The server starts on `http://0.0.0.0:3000`.
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/` | Health check |
+| POST | `/pricing_range` | OHLCV prices for one or more symbols over a date range |
+
+### `POST /pricing_range`
+
+```json
+{
+  "symbols": ["SPY", "QQQ"],
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31"
+}
+```
 
 ## Commands
 
