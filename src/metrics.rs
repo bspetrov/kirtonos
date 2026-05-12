@@ -20,9 +20,46 @@ pub mod returns {
     }
 }
 
-pub mod risk {}
+pub mod risk {
+    pub fn volatility(log_returns: &[f64]) -> f64 {
+        let n = log_returns.len() as f64;
+        let mean = log_returns.iter().sum::<f64>() / n;
+        let variance = log_returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1.0);
+        variance.sqrt() * 252.0_f64.sqrt()
+    }
 
-pub mod ratios {}
+    pub fn max_drawdown(prices: &[f64]) -> f64 {
+        prices
+            .iter()
+            .fold((f64::NEG_INFINITY, 0.0_f64), |(peak, max_dd), &price| {
+                let new_peak = peak.max(price);
+                let dd = (price - new_peak) / new_peak;
+                (new_peak, max_dd.min(dd))
+            })
+            .1
+    }
+}
+
+pub mod ratios {
+    pub fn sharpe(annualized_return: f64, volatility: f64, risk_free_rate: f64) -> f64 {
+        (annualized_return - risk_free_rate) / volatility
+    }
+
+    pub fn sortino(annualized_return: f64, log_returns: &[f64], risk_free_rate: f64) -> f64 {
+        let n = log_returns.len() as f64;
+        let downside_variance = log_returns
+            .iter()
+            .map(|&r| if r < 0.0 { r.powi(2) } else { 0.0 })
+            .sum::<f64>()
+            / n;
+        let downside_vol = downside_variance.sqrt() * 252.0_f64.sqrt();
+        (annualized_return - risk_free_rate) / downside_vol
+    }
+
+    pub fn calmar(annualized_return: f64, max_drawdown: f64) -> f64 {
+        annualized_return / max_drawdown.abs()
+    }
+}
 
 pub mod diversification {}
 
