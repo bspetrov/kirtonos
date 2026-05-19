@@ -246,6 +246,26 @@ pub fn get_assets() -> Result<Vec<String>> {
     Ok(assets)
 }
 
+pub fn get_risk_free_rate(conn: Option<&Connection>) -> anyhow::Result<f64> {
+    let owned;
+    let conn: &Connection = match conn {
+        Some(c) => c,
+        None => {
+            owned = Connection::open(get_db_url())?;
+            &owned
+        }
+    };
+    let mut stmt = conn.prepare(
+        "SELECT value FROM macro_data WHERE series_id = 'DTB3' ORDER BY date DESC LIMIT 1",
+    )?;
+    let mut rows = stmt.query([])?;
+    if let Some(row) = rows.next()? {
+        let value: f64 = row.get(0)?;
+        return Ok(value / 100.0);
+    }
+    anyhow::bail!("No DTB3 data found in macro_data")
+}
+
 // This was simply a test function to see if entities get created..
 pub fn show_tables() -> Result<()> {
     let db_url = get_db_url();
