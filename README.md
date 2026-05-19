@@ -62,7 +62,7 @@ All metrics and ratio endpoints accept a JSON body with `symbols`, `start_date`,
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/` | Health check |
+| GET | `/healthcheck` | Health check |
 | POST | `/pricing_range` | OHLCV prices for one or more symbols over a date range |
 | POST | `/metrics/returns` | Simple, log, cumulative, and annualized returns per symbol |
 | POST | `/metrics/risk` | Annualized volatility and max drawdown per symbol |

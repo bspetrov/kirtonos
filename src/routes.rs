@@ -63,7 +63,7 @@ struct RatioResponse {
 
 pub fn build_router() -> Router {
     Router::new()
-        .route("/", get(test))
+        .route("/healthcheck", get(test))
         .route("/pricing_range", post(get_symbol_pricing))
         .route("/metrics/returns", post(get_returns))
         .route("/metrics/risk", post(get_risk))
@@ -73,7 +73,7 @@ pub fn build_router() -> Router {
 }
 
 async fn test() -> String {
-    String::from("test, test!")
+    String::from("I am alive, beep!")
 }
 
 async fn get_symbol_pricing(
